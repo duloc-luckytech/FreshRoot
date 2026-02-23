@@ -1,12 +1,14 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getMyShop, upsertShop } from '@/services/agent-service';
+import { pickImage, uploadImage } from '@/services/image-upload-service';
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function ShopSetupScreen() {
     const router = useRouter();
@@ -43,6 +45,20 @@ export default function ShopSetupScreen() {
             console.log('No shop found or error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleImagePick = async () => {
+        const uri = await pickImage();
+        if (uri) {
+            setSaving(true);
+            const uploadedUrl = await uploadImage(uri);
+            if (uploadedUrl) {
+                setForm({ ...form, image: uploadedUrl });
+            } else {
+                Alert.alert('Lỗi', 'Không thể tải ảnh lên. Vui lòng thử lại.');
+            }
+            setSaving(false);
         }
     };
 
@@ -102,14 +118,22 @@ export default function ShopSetupScreen() {
                 </View>
 
                 <View style={styles.formGroup}>
-                    <ThemedText style={styles.label}>Link ảnh đại diện</ThemedText>
-                    <TextInput
-                        style={[styles.input, { color: colors.text, borderColor: 'rgba(142, 142, 147, 0.2)' }]}
-                        value={form.image}
-                        onChangeText={(t) => setForm({ ...form, image: t })}
-                        placeholder="https://example.com/image.jpg"
-                        placeholderTextColor="#8e8e93"
-                    />
+                    <ThemedText style={styles.label}>Ảnh đại diện cửa hàng</ThemedText>
+                    <TouchableOpacity style={styles.imagePicker} onPress={handleImagePick} disabled={saving}>
+                        {form.image ? (
+                            <Image source={{ uri: form.image }} style={styles.previewImage} />
+                        ) : (
+                            <View style={styles.imagePlaceholder}>
+                                <IconSymbol name="camera.fill" size={32} color="#8e8e93" />
+                                <ThemedText style={styles.placeholderText}>Chạm để chọn ảnh</ThemedText>
+                            </View>
+                        )}
+                        {saving && (
+                            <View style={styles.imageLoadingOverlay}>
+                                <ActivityIndicator color="#FFF" />
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.formGroup}>
@@ -188,5 +212,36 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    imagePicker: {
+        width: '100%',
+        height: 200,
+        borderRadius: 20,
+        overflow: 'hidden',
+        backgroundColor: 'rgba(142, 142, 147, 0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(142, 142, 147, 0.2)',
+        borderStyle: 'dashed',
+    },
+    imagePlaceholder: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 10,
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    placeholderText: {
+        color: '#8e8e93',
+        fontSize: 14,
+    },
+    imageLoadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

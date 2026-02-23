@@ -11,6 +11,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { ThemedText } from './themed-text';
 
+const LOGO_IMAGE = require('@/assets/images/logo-freshroot.png');
+
 const { width, height } = Dimensions.get('window');
 
 const FloatingLeaf = ({ size = 20, delay = 0, initialX = 0, duration = 4000 }) => {
@@ -105,7 +107,7 @@ export function BrandedSplash() {
 
             <Animated.View style={[styles.logoContainer, logoStyle]}>
                 <Image
-                    source={{ uri: 'https://cdn-icons-png.flaticon.com/512/325/325036.png' }}
+                    source={LOGO_IMAGE}
                     style={styles.logo}
                 />
             </Animated.View>

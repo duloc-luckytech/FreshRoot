@@ -31,8 +31,7 @@ export const BiometricService = {
     authenticate: async (promptMessage: string = 'Xác thực để tiếp tục'): Promise<boolean> => {
         const result = await LocalAuthentication.authenticateAsync({
             promptMessage,
-            fallbackLabel: 'Sử dụng mật khẩu',
-            disableDeviceFallback: false,
+            disableDeviceFallback: true,
         });
         return result.success;
     },

@@ -63,23 +63,29 @@ export default function SecurityScreen() {
 
     const handleToggleBiometrics = async (value: boolean) => {
         if (value) {
-            // Ask for password confirmation to enable and store
-            Alert.prompt(
-                'Bật Face ID',
-                'Vui lòng nhập mật khẩu hiện tại để xác thực và lưu thông tin đăng nhập Biometric.',
-                [
-                    { text: 'Hủy', style: 'cancel', onPress: () => setBiometricsEnabled(false) },
-                    {
-                        text: 'Xác nhận',
-                        onPress: async (password?: string) => {
-                            if (!password) {
-                                Alert.alert('Lỗi', 'Cần có mật khẩu để bật Face ID');
-                                setBiometricsEnabled(false);
-                                return;
-                            }
+            // First, perform the biometric scan to confirm identity
+            const authenticated = await BiometricService.authenticate('Xác nhận Face ID để kích hoạt');
 
-                            const authenticated = await BiometricService.authenticate('Xác nhận Face ID của bạn');
-                            if (authenticated) {
+            if (authenticated) {
+                // Now ask for the password ONE TIME to store it securely for future logins
+                Alert.prompt(
+                    'Bộ lưu trữ bảo mật',
+                    'Vui lòng nhập mật khẩu đăng nhập của bạn để lưu vào chuỗi khóa bảo mật. Bạn sẽ không cần nhập lại mật khẩu này cho các lần đăng nhập sau bằng Face ID.',
+                    [
+                        {
+                            text: 'Hủy',
+                            style: 'cancel',
+                            onPress: () => setBiometricsEnabled(false)
+                        },
+                        {
+                            text: 'Lưu mật khẩu',
+                            onPress: async (password?: string) => {
+                                if (!password) {
+                                    Alert.alert('Lỗi', 'Cần có mật khẩu để hoàn tất thiết lập Face ID');
+                                    setBiometricsEnabled(false);
+                                    return;
+                                }
+
                                 const { user } = useAuthStore.getState();
                                 if (user?.email) {
                                     await BiometricService.saveCredentials({
@@ -87,16 +93,16 @@ export default function SecurityScreen() {
                                         password: password
                                     });
                                     setBiometricsEnabled(true);
-                                    Alert.alert('Thành công', 'Đã bật Face ID cho các lần đăng nhập sau.');
+                                    Alert.alert('Thành công', 'Face ID đã được kích hoạt. Lần tới bạn chỉ cần quyét khuôn mặt để vào app!');
                                 }
-                            } else {
-                                setBiometricsEnabled(false);
                             }
                         }
-                    }
-                ],
-                'secure-text'
-            );
+                    ],
+                    'secure-text'
+                );
+            } else {
+                setBiometricsEnabled(false);
+            }
         } else {
             // Disable and clear
             await BiometricService.clearCredentials();

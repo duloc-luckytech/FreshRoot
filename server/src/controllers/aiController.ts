@@ -30,7 +30,9 @@ export const askAI = async (req: Request, res: Response) => {
         if (relatedBlogs.length > 0) {
             const blog = relatedBlogs[0];
             if (blog) {
-                answer = `Dựa trên mẹo nấu ăn của chúng tôi về "${blog.title}": ${blog.description}. Bạn có thể xem chi tiết trong mục Cộng đồng!`;
+                const title = blog.title || '';
+                const description = blog.description || '';
+                answer = `Dựa trên mẹo nấu ăn của chúng tôi về "${title}": ${description}. Bạn có thể xem chi tiết trong mục Cộng đồng!`;
 
                 if (blog.riskAlerts && blog.riskAlerts.length > 0) {
                     answer += `\n\n⚠️ Cảnh báo rủi ro: ${blog.riskAlerts.join(', ')}`;
@@ -39,7 +41,10 @@ export const askAI = async (req: Request, res: Response) => {
         } else if (relatedRecipes.length > 0) {
             const recipe = relatedRecipes[0];
             if (recipe) {
-                answer = `Tôi tìm thấy món "${recipe.title}". Món này thuộc chuyên mục ${recipe.category}. Bạn cần chuẩn bị: ${recipe.ingredients.map(i => i.name).join(', ')}.`;
+                const title = recipe.title || '';
+                const category = recipe.category || '';
+                const ingredients = recipe.ingredients ? recipe.ingredients.map((i: any) => i.name).join(', ') : '';
+                answer = `Tôi tìm thấy món "${title}". Món này thuộc chuyên mục ${category}. Bạn cần chuẩn bị: ${ingredients}.`;
 
                 if (recipe.riskAlerts && recipe.riskAlerts.length > 0) {
                     answer += `\n\n⚠️ Chú ý an toàn: ${recipe.riskAlerts.join(', ')}`;

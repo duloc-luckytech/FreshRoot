@@ -40,6 +40,8 @@ const MAPPING = {
   'sparkles': 'auto-awesome',
   'faceid': 'face',
   'fingerprint': 'fingerprint',
+  'camera.fill': 'photo-camera',
+  'photo.fill': 'photo-library',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;

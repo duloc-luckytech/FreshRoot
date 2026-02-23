@@ -10,6 +10,8 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
+const LOGO_IMAGE = require('@/assets/images/logo-freshroot.png');
+
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -81,7 +83,7 @@ export default function LoginScreen() {
             >
                 <Animated.View style={styles.header} entering={FadeInUp.duration(1000).delay(400)}>
                     <Image
-                        source={{ uri: 'https://cdn-icons-png.flaticon.com/512/325/325036.png' }}
+                        source={LOGO_IMAGE}
                         style={styles.logo}
                     />
                     <Text style={[styles.title, { color: theme.text }]}>FreshRoot</Text>
