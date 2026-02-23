@@ -4,7 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCartStore } from '@/store/cart-store';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React from 'react';
 import { FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -59,18 +59,20 @@ export default function CartScreen() {
         );
     }
 
+    const navigation = useNavigation();
+
+    React.useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () => (
+                <TouchableOpacity onPress={clearCart} style={{ marginRight: 10 }}>
+                    <ThemedText style={{ color: '#E74C3C', fontWeight: 'bold' }}>Xóa hết</ThemedText>
+                </TouchableOpacity>
+            ),
+        });
+    }, [navigation, clearCart]);
+
     return (
         <ThemedView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <ThemedText type="subtitle">Giỏ hàng</ThemedText>
-                <TouchableOpacity onPress={clearCart}>
-                    <ThemedText style={{ color: '#E74C3C' }}>Xóa hết</ThemedText>
-                </TouchableOpacity>
-            </View>
-
             <FlatList
                 data={items}
                 renderItem={renderItem}
@@ -99,14 +101,6 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 20,
     },
     list: {
         paddingHorizontal: 20,

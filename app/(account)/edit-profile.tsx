@@ -5,7 +5,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { updateProfile } from '@/services/profile-service';
 import { useAuthStore } from '@/store/auth-store';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -43,22 +43,24 @@ export default function EditProfileScreen() {
         }
     };
 
-    return (
-        <ThemedView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <ThemedText type="subtitle">Sửa hồ sơ</ThemedText>
-                <TouchableOpacity onPress={handleSave} disabled={loading}>
+    const navigation = useNavigation();
+
+    React.useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () => (
+                <TouchableOpacity onPress={handleSave} disabled={loading} style={{ marginRight: 10 }}>
                     {loading ? (
                         <ActivityIndicator size="small" color={colors.tint} />
                     ) : (
                         <ThemedText style={{ color: colors.tint, fontWeight: 'bold' }}>Lưu</ThemedText>
                     )}
                 </TouchableOpacity>
-            </View>
+            ),
+        });
+    }, [navigation, loading, name, phone, bio, avatar]);
 
+    return (
+        <ThemedView style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                 <View style={styles.avatarSection}>
                     <Image source={{ uri: avatar || 'https://i.pravatar.cc/150' }} style={styles.avatar} />
@@ -115,17 +117,9 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 30,
     },
     content: {
-        paddingHorizontal: 20,
+        padding: 20,
     },
     avatarSection: {
         alignItems: 'center',

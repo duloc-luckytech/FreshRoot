@@ -192,15 +192,20 @@ export default function MenuScreen() {
                 </View>
               </TouchableOpacity>
 
-              <View style={[styles.headerSearchContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <TouchableOpacity
+                style={[styles.headerSearchContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+                onPress={() => router.push('/search')}
+                activeOpacity={0.9}
+              >
                 <IconSymbol name="magnifyingglass" size={16} color="#FFF" />
                 <TextInput
                   placeholder="Tìm món ăn, cửa hàng..."
                   placeholderTextColor="rgba(255,255,255,0.7)"
                   style={[styles.headerSearchInput, { color: '#FFF' }]}
-                  onFocus={() => router.push('/search')}
+                  editable={false}
+                  pointerEvents="none"
                 />
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.headerRight}>
                 <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.actionBtn}>
@@ -221,11 +226,15 @@ export default function MenuScreen() {
           {/* Clean Nav Grid (Minimalist) */}
           <View style={styles.navGrid}>
             {navIcons.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.navItem} onPress={item.action}>
-                <View style={styles.navIconContainer}>
-                  <IconSymbol name={item.icon as any} size={22} color={colors.text} />
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.navItemContainer, { backgroundColor: colors.tint + '10', borderColor: colors.tint + '25' }]}
+                onPress={item.action}
+              >
+                <View style={[styles.miniIconContainer, { backgroundColor: colors.tint }]}>
+                  <IconSymbol name={item.icon as any} size={18} color="#FFF" />
                 </View>
-                <ThemedText style={styles.navText}>{item.name}</ThemedText>
+                <ThemedText style={[styles.navText, { color: colors.text }]} numberOfLines={1}>{item.name}</ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -663,27 +672,38 @@ const styles = StyleSheet.create({
   navGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 25,
-    marginTop: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 15,
+    marginTop: 15,
+    gap: 12,
   },
-  navItem: {
-    width: (width - 80) / 3,
+  navItemContainer: {
+    width: (width - 70) / 3, // Precise fixed width for 3 columns
+    height: 90, // Fixed height for uniformity
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
     gap: 8,
-    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  navIconContainer: {
-    width: 44,
-    height: 44,
+  miniIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   navText: {
-    fontSize: 10,
-    fontWeight: '600',
-    opacity: 0.7,
+    fontSize: 11,
+    fontWeight: '700',
     textAlign: 'center',
+    width: '100%',
   },
   section: {
     marginBottom: 20,

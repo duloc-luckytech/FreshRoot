@@ -103,6 +103,19 @@ export default function AccountScreen() {
                     />
                 </View>
 
+                {user?.role === 'admin' && (
+                    <View style={styles.section}>
+                        <ThemedText style={styles.sectionTitle}> QUẢN TRỊ VIÊN </ThemedText>
+                        <SettingItem
+                            icon="shield.fill"
+                            label="Quản lý CMS"
+                            onPress={() => router.push('/(admin)/cms')}
+                            color="#9B59B6"
+                            badge="Admin"
+                        />
+                    </View>
+                )}
+
                 <View style={styles.section}>
                     <ThemedText style={styles.sectionTitle}>Cài đặt ứng dụng</ThemedText>
                     <SettingItem

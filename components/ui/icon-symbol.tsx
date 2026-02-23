@@ -42,6 +42,11 @@ const MAPPING = {
   'fingerprint': 'fingerprint',
   'camera.fill': 'photo-camera',
   'photo.fill': 'photo-library',
+  'fork.knife': 'restaurant',
+  'leaf.fill': 'eco',
+  'cup.and.saucer.fill': 'local-cafe',
+  'chart.bar.fill': 'bar-chart',
+  'power': 'power-settings-new',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;

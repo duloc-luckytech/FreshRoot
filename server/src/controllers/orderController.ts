@@ -106,3 +106,15 @@ export const updatePaymentStatus = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const getAllOrders = async (req: Request, res: Response) => {
+    try {
+        const orders = await Order.find({})
+            .populate('userId', 'name email')
+            .populate('shopId', 'name')
+            .sort({ createdAt: -1 });
+        res.json({ success: true, data: orders });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

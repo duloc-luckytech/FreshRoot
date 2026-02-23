@@ -4,290 +4,274 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLocation } from '@/hooks/use-location';
-import { getRecipes, IRecipe } from '@/services/recipe-service';
 import { getShops, IShop } from '@/services/shop-service';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import * as Location from 'expo-location';
+import { useNavigation, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Keyboard,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
-const { width } = Dimensions.get('window');
+const MOCK_LOCATION = { latitude: 10.7765, longitude: 106.7019 };
 
-// Mock location for "Nearby" calculation (HCMC Center)
-const MOCK_LOCATION = {
-    latitude: 10.7765,
-    longitude: 106.7019,
-};
+// Popular search suggestions (static)
+const POPULAR_SUGGESTIONS = [
+    'Phở Bò', 'Bún Chả', 'Cơm Tấm', 'Bún Bò Huế', 'Bánh Mì',
+    'Lẩu', 'Gỏi Cuốn', 'Bún Riêu', 'Hủ Tiếu', 'Chả Giò',
+];
 
 export default function SearchScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const router = useRouter();
-    const params = useLocalSearchParams();
-    const { location: userLocation, loading: locationLoading } = useLocation();
+    const { location: userLocation } = useLocation();
+    const inputRef = useRef<TextInput>(null);
+    const isDark = colorScheme === 'dark';
 
-    const [searchQuery, setSearchQuery] = useState((params.q as string) || '');
-    const [selectedCategory, setSelectedCategory] = useState((params.category as string) || '');
-    const [selectedFoodGroup, setSelectedFoodGroup] = useState('');
-    const [onSaleOnly, setOnSaleOnly] = useState(params.discount === 'true');
-    const [nearbyOnly, setNearbyOnly] = useState(params.nearby === 'true');
-
-    const [recipes, setRecipes] = useState<IRecipe[]>([]);
+    const navigation = useNavigation();
+    const [query, setQuery] = useState('');
     const [shops, setShops] = useState<IShop[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [address, setAddress] = useState('Đang xác định...');
+    const [suggestions, setSuggestions] = useState<string[]>([]);
 
-    const categories = [
-        { id: 0, name: 'Tất cả', value: '' },
-        { id: 1, name: 'Bữa sáng', value: 'Bữa sáng' },
-        { id: 2, name: 'Bữa trưa', value: 'Bữa trưa' },
-        { id: 3, name: 'Bữa tối', value: 'Bữa tối' },
-        { id: 4, name: 'Ăn vặt', value: 'Ăn vặt' },
-    ];
+    // Hide default header
+    useLayoutEffect(() => {
+        navigation.setOptions({ headerShown: false });
+    }, [navigation]);
 
-    const foodGroups = [
-        { id: 0, name: 'Món ăn', value: '' },
-        { id: 1, name: 'Cơm', value: 'Cơm' },
-        { id: 2, name: 'Phở', value: 'Phở' },
-        { id: 3, name: 'Bún', value: 'Bún' },
-        { id: 4, name: 'Mì', value: 'Mì' },
-        { id: 5, name: 'Lẩu', value: 'Lẩu' },
-        { id: 6, name: 'Salad', value: 'Salad' },
-        { id: 7, name: 'Đồ uống', value: 'Đồ uống' },
-    ];
-
+    // Get readable address from coordinates
     useEffect(() => {
-        performSearch();
-    }, [selectedCategory, selectedFoodGroup, onSaleOnly, nearbyOnly]);
+        (async () => {
+            try {
+                const lat = userLocation?.latitude || MOCK_LOCATION.latitude;
+                const lng = userLocation?.longitude || MOCK_LOCATION.longitude;
+                const [result] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+                if (result) {
+                    const parts = [result.streetNumber, result.street, result.district, result.city].filter(Boolean);
+                    setAddress(parts.join(', ') || 'Vị trí hiện tại');
+                }
+            } catch {
+                setAddress('Vị trí hiện tại');
+            }
+        })();
+    }, [userLocation]);
 
-    const performSearch = async () => {
+    // Auto-focus input on mount
+    useEffect(() => {
+        const timer = setTimeout(() => inputRef.current?.focus(), 300);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Generate suggestions as user types
+    useEffect(() => {
+        if (!query.trim()) {
+            setSuggestions([]);
+            return;
+        }
+        const q = query.toLowerCase();
+        const matched = POPULAR_SUGGESTIONS.filter(s => s.toLowerCase().includes(q) && s.toLowerCase() !== q);
+        // Also create "auto-complete" style suggestions
+        const autoCompletes = POPULAR_SUGGESTIONS
+            .filter(s => s.toLowerCase().startsWith(q))
+            .map(s => s);
+        const unique = [...new Set([...autoCompletes, ...matched])].slice(0, 5);
+        setSuggestions(unique);
+    }, [query]);
+
+    // Search shops when query changes (debounced)
+    useEffect(() => {
+        if (!query.trim()) {
+            setShops([]);
+            return;
+        }
+        const timer = setTimeout(() => searchShops(query), 400);
+        return () => clearTimeout(timer);
+    }, [query]);
+
+    const searchShops = useCallback(async (q: string) => {
+        if (!q.trim()) return;
         setLoading(true);
         try {
-            // Fetch Recipes
-            const recipeData = await getRecipes(
-                selectedCategory || undefined,
-                undefined,
-                searchQuery || undefined,
-                selectedFoodGroup || undefined
-            );
-            setRecipes(recipeData.data);
-
-            // Fetch Shops
-            const shopParams: any = {
-                search: searchQuery || undefined,
-            };
-            if (onSaleOnly) shopParams.onSale = true;
-            if (nearbyOnly) {
-                shopParams.lat = userLocation?.latitude || MOCK_LOCATION.latitude;
-                shopParams.lng = userLocation?.longitude || MOCK_LOCATION.longitude;
-                shopParams.radius = 5;
-            }
-
-            const shopData = await getShops(shopParams);
-            setShops(shopData.data);
-
-        } catch (error) {
-            console.error('Search error:', error);
+            const lat = userLocation?.latitude || MOCK_LOCATION.latitude;
+            const lng = userLocation?.longitude || MOCK_LOCATION.longitude;
+            const result = await getShops({ search: q, lat, lng, radius: 50 });
+            setShops(result.data || []);
+        } catch {
+            setShops([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, [userLocation]);
 
     const calculateDistance = (shopLocation: { coordinates: number[] }) => {
         const lat1 = userLocation?.latitude || MOCK_LOCATION.latitude;
         const lon1 = userLocation?.longitude || MOCK_LOCATION.longitude;
         const [lon2, lat2] = shopLocation.coordinates;
-
-        const R = 6371; // km
+        const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const d = R * c;
-
-        // Grab-style: Duration estimate (assume 2 mins per km + 5 min base)
-        const duration = Math.round(d * 2 + 5);
-        return `${duration} phút • ${d.toFixed(1)} km`;
+        return (R * c).toFixed(1);
     };
 
-    const renderHeader = () => (
-        <View style={styles.header}>
-            <View style={styles.searchRow}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <ThemedView style={[styles.searchContainer, { backgroundColor: colorScheme === 'light' ? '#F0F0F0' : '#2A2A2A' }]}>
-                    <IconSymbol name="magnifyingglass" size={20} color={colors.icon} />
-                    <TextInput
-                        placeholder="Tìm món ăn, cửa hàng..."
-                        placeholderTextColor={colors.icon}
-                        style={[styles.searchInput, { color: colors.text }]}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        onSubmitEditing={performSearch}
-                        autoFocus={!params.category}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => { setSearchQuery(''); performSearch(); }}>
-                            <IconSymbol name="xmark.circle.fill" size={18} color={colors.icon} />
-                        </TouchableOpacity>
-                    )}
-                </ThemedView>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow} style={{ marginBottom: 8 }}>
-                {categories.map((cat) => (
-                    <TouchableOpacity
-                        key={cat.id}
-                        style={[
-                            styles.filterChip,
-                            selectedCategory === cat.value && { backgroundColor: colors.tint, borderColor: colors.tint }
-                        ]}
-                        onPress={() => setSelectedCategory(cat.value)}
-                    >
-                        <ThemedText style={[styles.filterChipText, selectedCategory === cat.value && { color: '#FFF' }]}>
-                            {cat.name}
-                        </ThemedText>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow} style={{ marginBottom: 10 }}>
-                {foodGroups.map((group) => (
-                    <TouchableOpacity
-                        key={group.id}
-                        style={[
-                            styles.filterChip,
-                            { borderRadius: 10, paddingHorizontal: 12 },
-                            selectedFoodGroup === group.value && { backgroundColor: colors.tint + '20', borderColor: colors.tint }
-                        ]}
-                        onPress={() => setSelectedFoodGroup(group.value)}
-                    >
-                        <ThemedText style={[styles.filterChipText, { fontSize: 13 }, selectedFoodGroup === group.value && { color: colors.tint, fontWeight: 'bold' }]}>
-                            {group.name}
-                        </ThemedText>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            <View style={styles.quickFilters}>
-                <TouchableOpacity
-                    style={[styles.quickFilterBtn, onSaleOnly && { backgroundColor: '#E74C3C20' }]}
-                    onPress={() => setOnSaleOnly(!onSaleOnly)}
-                >
-                    <IconSymbol name="tag.fill" size={14} color={onSaleOnly ? '#E74C3C' : colors.icon} />
-                    <ThemedText style={[styles.quickFilterText, onSaleOnly && { color: '#E74C3C', fontWeight: 'bold' }]}>
-                        Giảm giá
-                    </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.quickFilterBtn, nearbyOnly && { backgroundColor: colors.tint + '20' }]}
-                    onPress={() => setNearbyOnly(!nearbyOnly)}
-                >
-                    <IconSymbol name="location.fill" size={14} color={nearbyOnly ? colors.tint : colors.icon} />
-                    <ThemedText style={[styles.quickFilterText, nearbyOnly && { color: colors.tint, fontWeight: 'bold' }]}>
-                        Gần đây
-                    </ThemedText>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-
-    const renderItem = ({ item, index }: { item: any; index: number }) => {
-        if (item.type === 'shop') {
-            const shop = item.data as IShop;
-            return (
-                <TouchableOpacity
-                    style={styles.shopCard}
-                    onPress={() => router.push(`/(shop)/${shop._id}`)}
-                >
-                    <Image source={{ uri: shop.image }} style={styles.shopImage} />
-                    <View style={styles.shopInfo}>
-                        <View style={styles.shopNameRow}>
-                            <ThemedText style={styles.shopName}>{shop.name}</ThemedText>
-                            {shop.isVerified && <IconSymbol name="checkmark.seal.fill" size={16} color="#3498DB" />}
-                        </View>
-                        <View style={styles.shopMeta}>
-                            <View style={styles.ratingRow}>
-                                <IconSymbol name="star.fill" size={12} color="#F1C40F" />
-                                <ThemedText style={styles.ratingText}>{shop.rating}</ThemedText>
-                                <ThemedText style={styles.distanceText}> • {calculateDistance(shop.location)}</ThemedText>
-                            </View>
-                        </View>
-                        {shop.discountLabel && (
-                            <View style={styles.discountBadge}>
-                                <ThemedText style={styles.discountText}>{shop.discountLabel}</ThemedText>
-                            </View>
-                        )}
-                    </View>
-                </TouchableOpacity>
-            );
-        } else {
-            const recipe = item.data as IRecipe;
-            return (
-                <TouchableOpacity
-                    style={styles.recipeCard}
-                    onPress={() => router.push(`/(tabs)`)} // Temporary link back to home or detail
-                >
-                    <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
-                    <View style={styles.recipeInfo}>
-                        <ThemedText style={styles.recipeTitle} numberOfLines={1}>{recipe.title}</ThemedText>
-                        <ThemedText style={styles.recipeCategory}>{recipe.category}</ThemedText>
-                        <ThemedText style={styles.recipePrice}>
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(recipe.costEstimate || 0)}
-                        </ThemedText>
-                    </View>
-                </TouchableOpacity>
-            );
-        }
+    const onSuggestionPress = (text: string) => {
+        setQuery(text);
+        Keyboard.dismiss();
     };
 
-    const combinedData = [
-        ...shops.map(s => ({ id: `shop-${s._id}`, type: 'shop', data: s })),
-        ...recipes.map(r => ({ id: `recipe-${r._id}`, type: 'recipe', data: r })),
-    ];
+    const bgColor = isDark ? '#000' : '#FFF';
+    const cardBg = isDark ? '#1c1c1e' : '#FFF';
+    const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const subtextColor = '#8e8e93';
+    const inputBg = isDark ? '#1c1c1e' : '#F2F2F7';
 
     return (
-        <ThemedView style={styles.container}>
-            {renderHeader()}
+        <ThemedView style={[st.container, { backgroundColor: bgColor }]}>
 
-            {loading ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color={colors.tint} />
+
+            {/* ═══ Header: Location + Back ═══ */}
+            <View style={[st.header, { backgroundColor: bgColor, borderBottomColor: borderColor }]}>
+                <TouchableOpacity onPress={() => router.back()} style={st.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <IconSymbol name="chevron.left" size={22} color={colors.text} />
+                </TouchableOpacity>
+                <View style={st.locationInfo}>
+                    <ThemedText style={st.locationLabel}>Vị trí của bạn</ThemedText>
+                    <View style={st.locationRow}>
+                        <ThemedText style={st.locationAddress} numberOfLines={1}>{address}</ThemedText>
+                        <IconSymbol name="chevron.right" size={12} color={subtextColor} />
+                    </View>
                 </View>
-            ) : combinedData.length > 0 ? (
-                <FlatList
-                    data={combinedData}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.listContent}
-                    showsVerticalScrollIndicator={false}
-                />
-            ) : (
-                <View style={styles.center}>
-                    <IconSymbol name="magnifyingglass" size={60} color={colors.icon} style={{ opacity: 0.3 }} />
-                    <ThemedText style={styles.emptyText}>Không tìm thấy kết quả phù hợp</ThemedText>
+            </View>
+
+            {/* ═══ Search Input ═══ */}
+            <View style={[st.searchSection, { backgroundColor: bgColor }]}>
+                <View style={[st.searchBar, { backgroundColor: inputBg }]}>
+                    <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
+                    <TextInput
+                        ref={inputRef}
+                        value={query}
+                        onChangeText={setQuery}
+                        placeholder="Tìm món ăn, cửa hàng..."
+                        placeholderTextColor={subtextColor}
+                        style={[st.searchInput, { color: colors.text }]}
+                        returnKeyType="search"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                    />
+                    {query.length > 0 && (
+                        <TouchableOpacity onPress={() => { setQuery(''); inputRef.current?.focus(); }} style={st.clearBtn}>
+                            <IconSymbol name="xmark.circle.fill" size={18} color={subtextColor} />
+                        </TouchableOpacity>
+                    )}
                 </View>
-            )}
+            </View>
+
+            {/* ═══ Results ═══ */}
+            <ScrollView style={st.results} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+                {/* Loading */}
+                {loading && (
+                    <View style={st.loadingContainer}>
+                        <ActivityIndicator size="small" color={colors.tint} />
+                    </View>
+                )}
+
+                {/* Suggestions */}
+                {!loading && suggestions.length > 0 && (
+                    <View>
+                        {suggestions.map((s, i) => (
+                            <TouchableOpacity
+                                key={`sug-${i}`}
+                                style={[st.suggestionItem, { borderBottomColor: borderColor }]}
+                                onPress={() => onSuggestionPress(s)}
+                            >
+                                <IconSymbol name="magnifyingglass" size={16} color={subtextColor} />
+                                <ThemedText style={st.suggestionText}>
+                                    <ThemedText style={{ fontWeight: 'bold' }}>{query}</ThemedText>
+                                    {s.toLowerCase().startsWith(query.toLowerCase())
+                                        ? s.slice(query.length)
+                                        : ` — ${s}`}
+                                </ThemedText>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+
+                {/* Shop Results */}
+                {!loading && shops.length > 0 && (
+                    <View style={st.shopResults}>
+                        {shops.map(shop => (
+                            <TouchableOpacity
+                                key={shop._id}
+                                style={[st.shopItem, { borderBottomColor: borderColor }]}
+                                onPress={() => { router.push(`/(shop)/${shop._id}`); }}
+                            >
+                                <View style={[st.shopPin, { backgroundColor: colors.tint }]}>
+                                    <IconSymbol name="location.fill" size={14} color="#FFF" />
+                                </View>
+                                <View style={st.shopInfo}>
+                                    <ThemedText style={st.shopName} numberOfLines={1}>{shop.name}</ThemedText>
+                                    <ThemedText style={st.shopMeta} numberOfLines={1}>
+                                        {calculateDistance(shop.location)}km · {shop.address}
+                                    </ThemedText>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+
+                {/* Empty state when typed but no results */}
+                {!loading && query.length > 0 && shops.length === 0 && suggestions.length === 0 && (
+                    <View style={st.emptyState}>
+                        <IconSymbol name="magnifyingglass" size={48} color={subtextColor} style={{ opacity: 0.3 }} />
+                        <ThemedText style={st.emptyText}>Không tìm thấy kết quả cho "{query}"</ThemedText>
+                    </View>
+                )}
+
+                {/* Popular searches when input is empty */}
+                {query.length === 0 && (
+                    <View style={st.popularSection}>
+                        <ThemedText style={st.popularTitle}>Tìm kiếm phổ biến</ThemedText>
+                        <View style={st.popularGrid}>
+                            {POPULAR_SUGGESTIONS.map((s, i) => (
+                                <TouchableOpacity
+                                    key={`pop-${i}`}
+                                    style={[st.popularChip, { backgroundColor: inputBg, borderColor }]}
+                                    onPress={() => onSuggestionPress(s)}
+                                >
+                                    <ThemedText style={st.popularChipText}>{s}</ThemedText>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                )}
+
+                <View style={{ height: 100 }} />
+            </ScrollView>
         </ThemedView>
     );
 }
 
-const styles = StyleSheet.create({
+const st = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
     },
     header: {
-        paddingHorizontal: 20,
-        backgroundColor: 'transparent',
-    },
-    searchRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 15,
+        paddingTop: Platform.OS === 'ios' ? 50 : 36,
+        paddingBottom: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 0.5,
     },
     backBtn: {
         width: 40,
@@ -295,153 +279,134 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    searchContainer: {
+    locationInfo: {
         flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        borderRadius: 15,
+        marginLeft: 4,
     },
-    searchInput: {
-        flex: 1,
-        marginLeft: 10,
-        fontSize: 16,
-    },
-    filterRow: {
-        gap: 10,
-        paddingBottom: 5,
-    },
-    filterChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(142, 142, 147, 0.2)',
-    },
-    filterChipText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    quickFilters: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 20,
-    },
-    quickFilterBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
-        backgroundColor: 'rgba(142, 142, 147, 0.05)',
-    },
-    quickFilterText: {
+    locationLabel: {
         fontSize: 12,
+        color: '#8e8e93',
+        fontWeight: '500',
     },
-    listContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-    },
-    shopCard: {
-        flexDirection: 'row',
-        backgroundColor: 'rgba(142, 142, 147, 0.05)',
-        borderRadius: 20,
-        marginBottom: 16,
-        padding: 12,
-        alignItems: 'center',
-    },
-    shopImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 15,
-    },
-    shopInfo: {
-        flex: 1,
-        marginLeft: 15,
-    },
-    shopNameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginBottom: 4,
-    },
-    shopName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    shopMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 15,
-    },
-    ratingRow: {
+    locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
     },
-    ratingText: {
-        fontSize: 12,
-        color: '#8e8e93',
-    },
-    distanceText: {
-        fontSize: 12,
-        color: '#8e8e93',
-    },
-    discountBadge: {
-        marginTop: 6,
-        backgroundColor: '#E74C3C',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        alignSelf: 'flex-start',
-    },
-    discountText: {
-        color: '#FFF',
-        fontSize: 10,
+    locationAddress: {
+        fontSize: 16,
         fontWeight: 'bold',
+        maxWidth: '90%',
     },
-    recipeCard: {
+    searchSection: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    searchBar: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(142, 142, 147, 0.05)',
-        borderRadius: 20,
-        marginBottom: 16,
-        padding: 12,
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        height: 46,
+        borderRadius: 12,
+        gap: 10,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        paddingVertical: 0,
+    },
+    clearBtn: {
+        padding: 4,
+    },
+    results: {
+        flex: 1,
+    },
+    loadingContainer: {
+        paddingVertical: 30,
         alignItems: 'center',
     },
-    recipeImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 40, // Different style for recipes
+
+    // Suggestions
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        gap: 14,
+        borderBottomWidth: 0.5,
     },
-    recipeInfo: {
-        flex: 1,
-        marginLeft: 15,
-    },
-    recipeTitle: {
+    suggestionText: {
         fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 2,
-    },
-    recipeCategory: {
-        fontSize: 12,
-        color: '#8e8e93',
-        marginBottom: 4,
-    },
-    recipePrice: {
-        fontSize: 14,
-        color: '#E67E22',
-        fontWeight: 'bold',
-    },
-    center: {
         flex: 1,
+    },
+
+    // Shop Results
+    shopResults: {
+        marginTop: 4,
+    },
+    shopItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        gap: 14,
+        borderBottomWidth: 0.5,
+    },
+    shopPin: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 50,
+    },
+    shopInfo: {
+        flex: 1,
+    },
+    shopName: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        marginBottom: 3,
+    },
+    shopMeta: {
+        fontSize: 13,
+        color: '#8e8e93',
+    },
+
+    // Empty
+    emptyState: {
+        alignItems: 'center',
+        paddingTop: 60,
+        gap: 12,
     },
     emptyText: {
-        marginTop: 15,
-        fontSize: 16,
+        fontSize: 15,
         color: '#8e8e93',
+        textAlign: 'center',
+    },
+
+    // Popular
+    popularSection: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+    },
+    popularTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        marginBottom: 14,
+    },
+    popularGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    popularChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        borderWidth: 1,
+    },
+    popularChipText: {
+        fontSize: 13,
+        fontWeight: '500',
     },
 });

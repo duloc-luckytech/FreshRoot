@@ -82,3 +82,26 @@ export const createShop = async (req: Request, res: Response, next: NextFunction
         res.status(400).json({ success: false, message: err.message });
     }
 };
+
+// @desc    Update a shop
+// @route   PUT /api/shops/:id
+// @access  Private (Admin)
+export const updateShop = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const shop = await Shop.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true,
+        });
+
+        if (!shop) {
+            return res.status(404).json({ success: false, message: 'Shop not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: shop,
+        });
+    } catch (err: any) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};

@@ -115,3 +115,15 @@ export const deactivateAccount = async (req: any, res: Response) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Get all users
+// @route   GET /api/account/all
+// @access  Private (Admin)
+export const getAllUsers = async (req: any, res: Response) => {
+    try {
+        const users = await User.find({}).sort({ createdAt: -1 });
+        res.json({ success: true, data: users });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

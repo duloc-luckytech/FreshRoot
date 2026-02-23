@@ -4,7 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { updateEmergencyContacts } from '@/services/profile-service';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -54,17 +54,20 @@ export default function EmergencyScreen() {
         }
     };
 
-    return (
-        <ThemedView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <ThemedText type="subtitle">Liên hệ khẩn cấp</ThemedText>
-                <TouchableOpacity onPress={() => setIsAdding(!isAdding)}>
+    const navigation = useNavigation();
+
+    React.useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () => (
+                <TouchableOpacity onPress={() => setIsAdding(!isAdding)} style={{ marginRight: 10 }}>
                     <IconSymbol name={isAdding ? 'xmark.circle.fill' : 'plus'} size={24} color={colors.tint} />
                 </TouchableOpacity>
-            </View>
+            ),
+        });
+    }, [navigation, isAdding]);
+
+    return (
+        <ThemedView style={styles.container}>
 
             <View style={styles.sosBanner}>
                 <View style={[styles.sosIcon, { backgroundColor: '#E74C3C' }]}>
@@ -130,7 +133,7 @@ export default function EmergencyScreen() {
                     </View>
                 )}
                 ListEmptyComponent={
-                    !isAdding && (
+                    isAdding ? null : (
                         <View style={styles.empty}>
                             <IconSymbol name="person.fill" size={60} color="#8e8e93" />
                             <ThemedText style={styles.emptyText}>Chưa có liên hệ khẩn cấp nào.</ThemedText>
@@ -145,14 +148,7 @@ export default function EmergencyScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 20,
+        paddingTop: 10,
     },
     sosBanner: {
         flexDirection: 'row',

@@ -9,7 +9,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 
 const { width } = Dimensions.get('window');
 
@@ -100,12 +100,6 @@ export default function ShopDetailScreen() {
                 {/* Header Image */}
                 <View style={styles.imageContainer}>
                     <Image source={{ uri: shop.image }} style={styles.image} />
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => router.back()}
-                    >
-                        <IconSymbol name="chevron.left" size={24} color="#FFF" />
-                    </TouchableOpacity>
                 </View>
 
                 {/* Shop Info */}
@@ -145,7 +139,6 @@ export default function ShopDetailScreen() {
                     {shop.location && (
                         <View style={styles.mapContainer}>
                             <MapView
-                                provider={PROVIDER_GOOGLE}
                                 style={styles.map}
                                 initialRegion={{
                                     latitude: shop.location.coordinates[1],
@@ -188,11 +181,14 @@ export default function ShopDetailScreen() {
                     )}
                 </ThemedView>
 
-                {/* Menu Section */}
+                {/* Main Menu Section */}
                 <ThemedView style={styles.menuSection}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>Thực đơn hôm nay</ThemedText>
-                    {menu.length > 0 ? (
-                        menu.map((item: IRecipe) => (
+                    <View style={styles.sectionHeader}>
+                        <IconSymbol name="fork.knife" size={20} color={colors.tint} />
+                        <ThemedText type="subtitle" style={styles.sectionTitle}>Thực đơn hôm nay</ThemedText>
+                    </View>
+                    {menu.filter(i => i.foodGroup !== 'Món thêm' && i.foodGroup !== 'Đồ uống').length > 0 ? (
+                        menu.filter(i => i.foodGroup !== 'Món thêm' && i.foodGroup !== 'Đồ uống').map((item: IRecipe) => (
                             <TouchableOpacity key={item._id} style={styles.menuItem}>
                                 <Image source={{ uri: item.image }} style={styles.menuItemImage} />
                                 <View style={styles.menuItemInfo}>
@@ -211,9 +207,67 @@ export default function ShopDetailScreen() {
                             </TouchableOpacity>
                         ))
                     ) : (
-                        <ThemedText style={styles.emptyText}>Cửa hàng này chưa cập nhật thực đơn.</ThemedText>
+                        <ThemedText style={styles.emptyText}>Cửa hàng này chưa cập nhật thực đơn chính.</ThemedText>
                     )}
                 </ThemedView>
+
+                {/* Sides Section (Horizontal) */}
+                {menu.some(i => i.foodGroup === 'Món thêm') && (
+                    <ThemedView style={styles.sidesSection}>
+                        <View style={styles.sectionHeader}>
+                            <IconSymbol name="leaf.fill" size={20} color="#2ECC71" />
+                            <ThemedText type="subtitle" style={styles.sectionTitle}>Món thêm</ThemedText>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                            {menu.filter(i => i.foodGroup === 'Món thêm').map((item: IRecipe) => (
+                                <View key={item._id} style={styles.sideCard}>
+                                    <Image source={{ uri: item.image }} style={styles.sideImage} />
+                                    <ThemedText style={styles.sideTitle} numberOfLines={1}>{item.title}</ThemedText>
+                                    <View style={styles.sideBottom}>
+                                        <ThemedText style={styles.sidePrice}>
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.costEstimate || 0)}
+                                        </ThemedText>
+                                        <TouchableOpacity
+                                            style={styles.smallAddBtn}
+                                            onPress={() => addItem(item, id as string)}
+                                        >
+                                            <IconSymbol name="plus" size={14} color="#FFF" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </ThemedView>
+                )}
+
+                {/* Drinks Section (Horizontal) */}
+                {menu.some(i => i.foodGroup === 'Đồ uống') && (
+                    <ThemedView style={[styles.sidesSection, { marginBottom: 100 }]}>
+                        <View style={styles.sectionHeader}>
+                            <IconSymbol name="cup.and.saucer.fill" size={20} color="#3498DB" />
+                            <ThemedText type="subtitle" style={styles.sectionTitle}>Đồ uống</ThemedText>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                            {menu.filter(i => i.foodGroup === 'Đồ uống').map((item: IRecipe) => (
+                                <View key={item._id} style={styles.sideCard}>
+                                    <Image source={{ uri: item.image }} style={[styles.sideImage, { borderRadius: 40 }]} />
+                                    <ThemedText style={styles.sideTitle} numberOfLines={1}>{item.title}</ThemedText>
+                                    <View style={styles.sideBottom}>
+                                        <ThemedText style={styles.sidePrice}>
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.costEstimate || 0)}
+                                        </ThemedText>
+                                        <TouchableOpacity
+                                            style={[styles.smallAddBtn, { backgroundColor: '#3498DB' }]}
+                                            onPress={() => addItem(item, id as string)}
+                                        >
+                                            <IconSymbol name="plus" size={14} color="#FFF" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </ThemedView>
+                )}
             </ScrollView>
 
             {/* Floating Cart Button */}
@@ -260,17 +314,6 @@ const styles = StyleSheet.create({
     image: {
         width: '100%',
         height: '100%',
-    },
-    backButton: {
-        position: 'absolute',
-        top: 50,
-        left: 20,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     infoContainer: {
         padding: 20,
@@ -369,15 +412,22 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 15,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
     menuSection: {
         padding: 20,
     },
-    sectionTitle: {
-        marginBottom: 20,
-    },
     menuItem: {
         flexDirection: 'row',
-        marginBottom: 20,
+        marginBottom: 16,
         backgroundColor: 'rgba(142, 142, 147, 0.05)',
         borderRadius: 20,
         padding: 12,
@@ -413,6 +463,50 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sidesSection: {
+        paddingVertical: 10,
+        paddingLeft: 20,
+        marginBottom: 20,
+    },
+    horizontalScroll: {
+        paddingRight: 20,
+        gap: 15,
+    },
+    sideCard: {
+        width: 130,
+        backgroundColor: 'rgba(142, 142, 147, 0.05)',
+        borderRadius: 20,
+        padding: 10,
+    },
+    sideImage: {
+        width: '100%',
+        height: 80,
+        borderRadius: 12,
+        marginBottom: 8,
+    },
+    sideTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    sideBottom: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    sidePrice: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#2ECC71',
+    },
+    smallAddBtn: {
+        backgroundColor: '#2ECC71',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },

@@ -10,7 +10,7 @@ interface User {
     avatar: string;
     phone?: string;
     bio?: string;
-    role: 'user' | 'agent';
+    role: 'user' | 'agent' | 'admin';
 }
 
 interface AuthState {

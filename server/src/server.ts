@@ -6,6 +6,7 @@ import connectDB from './config/db';
 // Route files
 import path from 'path';
 import account from './routes/accountRoutes';
+import admin from './routes/adminRoutes';
 import agent from './routes/agentRoutes';
 import ai from './routes/aiRoutes';
 import auth from './routes/auth';
@@ -23,7 +24,26 @@ import upload from './routes/uploadRoutes';
 dotenv.config();
 
 // Connect to database
-connectDB();
+connectDB().then(async () => {
+    // Seed Admin User
+    try {
+        const User = require('./models/User').default;
+        const adminExists = await User.findOne({ email: 'admin' });
+        if (!adminExists) {
+            await User.create({
+                name: 'Administrator',
+                email: 'admin',
+                password: 'admin',
+                role: 'admin',
+                isActive: true,
+                rank: 'Challenger'
+            });
+            console.log('Admin user created (admin/admin)');
+        }
+    } catch (err) {
+        console.error('Error seeding admin:', err);
+    }
+});
 
 const app = express();
 
@@ -47,6 +67,7 @@ app.use('/api/agent', agent);
 app.use('/api/blogs', blogs);
 app.use('/api/ai', ai);
 app.use('/api/upload', upload);
+app.use('/api/admin', admin);
 
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

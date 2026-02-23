@@ -4,7 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IAddress, updateAddresses } from '@/services/profile-service';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -51,17 +51,20 @@ export default function AddressesScreen() {
         }
     };
 
-    return (
-        <ThemedView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <ThemedText type="subtitle">Địa chỉ đã lưu</ThemedText>
-                <TouchableOpacity onPress={() => setIsAdding(!isAdding)}>
+    const navigation = useNavigation();
+
+    React.useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () => (
+                <TouchableOpacity onPress={() => setIsAdding(!isAdding)} style={{ marginRight: 10 }}>
                     <IconSymbol name={isAdding ? 'xmark.circle.fill' : 'plus'} size={24} color={colors.tint} />
                 </TouchableOpacity>
-            </View>
+            ),
+        });
+    }, [navigation, isAdding]);
+
+    return (
+        <ThemedView style={styles.container}>
 
             {isAdding && (
                 <View style={styles.addForm}>
@@ -110,7 +113,7 @@ export default function AddressesScreen() {
                     </View>
                 )}
                 ListEmptyComponent={
-                    !isAdding && (
+                    isAdding ? null : (
                         <View style={styles.empty}>
                             <IconSymbol name="location.fill" size={60} color="#8e8e93" />
                             <ThemedText style={styles.emptyText}>Chưa có địa chỉ nào được lưu.</ThemedText>
@@ -125,14 +128,7 @@ export default function AddressesScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 20,
+        paddingTop: 10,
     },
     list: {
         paddingHorizontal: 20,

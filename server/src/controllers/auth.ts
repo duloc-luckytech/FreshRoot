@@ -67,7 +67,8 @@ const sendTokenResponse = (user: IUser, statusCode: number, res: Response) => {
             email: user.email,
             rank: user.rank,
             points: user.points,
-            avatar: user.avatar
+            avatar: user.avatar,
+            role: user.role
         }
     });
 };

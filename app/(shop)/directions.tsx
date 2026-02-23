@@ -8,7 +8,7 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, Alert, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 
 const { width, height } = Dimensions.get('window');
 
@@ -104,13 +104,12 @@ export default function DirectionsScreen() {
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <MapView
-                provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={{
                     latitude: (start.latitude + end.latitude) / 2,
                     longitude: (start.longitude + end.longitude) / 2,
-                    latitudeDelta: Math.abs(start.latitude - end.latitude) * 2,
-                    longitudeDelta: Math.abs(start.longitude - end.longitude) * 2,
+                    latitudeDelta: Math.min(Math.max(Math.abs(start.latitude - end.latitude) * 2, 0.01), 180),
+                    longitudeDelta: Math.min(Math.max(Math.abs(start.longitude - end.longitude) * 2, 0.01), 359),
                 }}
             >
                 <Marker coordinate={start} title="Vị trí của bạn">
@@ -125,7 +124,6 @@ export default function DirectionsScreen() {
                     coordinates={coordinates}
                     strokeColor={colors.tint}
                     strokeWidth={4}
-                    lineDashPattern={[0]}
                 />
             </MapView>
 

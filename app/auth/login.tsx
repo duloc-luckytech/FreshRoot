@@ -1,7 +1,7 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import apiClient from '@/services/api-client';
+import apiClient from '@/services/api-client'; // Added this line
 import { BiometricService } from '@/services/biometric-service';
 import { useAuthStore } from '@/store/auth-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -48,6 +48,7 @@ export default function LoginScreen() {
         try {
             const response = await apiClient.post('/auth/login', { email: loginEmail, password: loginPassword });
             const { token, user } = response.data;
+            console.log('Login successful:', { email: user.email, role: user.role });
 
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('user', JSON.stringify(user));
@@ -55,7 +56,12 @@ export default function LoginScreen() {
             setToken(token);
             setUser(user);
 
-            router.replace('/(tabs)');
+            // Force redirect if RootLayout is slow
+            if (user.role === 'admin') {
+                router.replace('/(admin)/cms');
+            } else {
+                router.replace('/(tabs)');
+            }
         } catch (error: any) {
             const message = error.response?.data?.message || 'Đăng nhập thất bại';
             Alert.alert('Lỗi', message);
@@ -92,7 +98,7 @@ export default function LoginScreen() {
 
                 <View style={styles.form}>
                     <View style={styles.inputContainer}>
-                        <Text style={[styles.label, { color: theme.text }]}>Email</Text>
+                        <Text style={[styles.label, { color: theme.text }]}>Email / Username</Text>
                         <TextInput
                             style={[styles.input, { color: theme.text, borderColor: theme.icon, backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#f2f2f7' }]}
                             placeholder="example@gmail.com"

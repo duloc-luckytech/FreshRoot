@@ -4,7 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNotificationStore } from '@/store/notification-store';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -62,17 +62,25 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
     );
 
-    return (
-        <ThemedView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
+    const navigation = useNavigation();
+
+    React.useLayoutEffect(() => {
+        navigation.setOptions({
+            headerLeft: () => (
+                <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
+                    <IconSymbol name="chevron.left" size={24} color={colors.tint} />
                 </TouchableOpacity>
-                <ThemedText type="subtitle">Thông báo</ThemedText>
-                <TouchableOpacity onPress={markAllRead}>
+            ),
+            headerRight: () => (
+                <TouchableOpacity onPress={markAllRead} style={{ marginRight: 10 }}>
                     <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>Đọc hết</ThemedText>
                 </TouchableOpacity>
-            </View>
+            ),
+        });
+    }, [navigation, markAllRead]);
+
+    return (
+        <ThemedView style={styles.container}>
 
             {loading && notifications.length === 0 ? (
                 <View style={styles.centerContainer}>
@@ -102,14 +110,6 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 20,
     },
     listContent: {
         paddingHorizontal: 20,

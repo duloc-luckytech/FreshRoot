@@ -324,6 +324,73 @@ const importData = async () => {
                 instructions: ['Rán đậu', 'Chuẩn bị mắm tôm'],
                 costEstimate: 40000,
                 shopId: (shops as any)[3]._id,
+            },
+            // --- NEW SIDES & DRINKS ---
+            {
+                title: 'Quẩy giòn',
+                description: 'Ăn kèm với phở hoặc bún riêu.',
+                category: 'Món thêm',
+                foodGroup: 'Món thêm',
+                image: 'https://images.unsplash.com/photo-1621213176330-ddcc8418043b?q=80&w=1000&auto=format&fit=crop',
+                ingredients: [{ name: 'Bột mì', amount: '1 cái', price: 2000 }],
+                instructions: ['Chiên giòn'],
+                costEstimate: 5000,
+                shopId: (shops as any)[0]._id, // Fresh Garden
+            },
+            {
+                title: 'Trứng ốp la',
+                description: 'Trứng gà tươi chiên lòng đào.',
+                category: 'Món thêm',
+                foodGroup: 'Món thêm',
+                image: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?q=80&w=1000&auto=format&fit=crop',
+                ingredients: [{ name: 'Trứng gà', amount: '1 quả', price: 5000 }],
+                instructions: ['Chiên ốp la'],
+                costEstimate: 10000,
+                shopId: (shops as any)[1]._id, // Organic Market
+            },
+            {
+                title: 'Trà đá Fresh',
+                description: 'Trà xanh đá lạnh giải khát.',
+                category: 'Đồ uống',
+                foodGroup: 'Đồ uống',
+                image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=1000&auto=format&fit=crop',
+                ingredients: [{ name: 'Trà xanh, đá', amount: '1 ly', price: 2000 }],
+                instructions: ['Pha trà'],
+                costEstimate: 5000,
+                shopId: (shops as any)[0]._id,
+            },
+            {
+                title: 'Coca Cola',
+                description: 'Nước ngọt có gas 330ml.',
+                category: 'Đồ uống',
+                foodGroup: 'Đồ uống',
+                image: 'https://images.unsplash.com/photo-1622483767028-3f66f3445078?q=80&w=1000&auto=format&fit=crop',
+                ingredients: [{ name: 'Coca', amount: '1 lon', price: 12000 }],
+                instructions: ['Bật nắp'],
+                costEstimate: 15000,
+                shopId: (shops as any)[1]._id,
+            },
+            {
+                title: 'Nước suối Lavie',
+                description: 'Nước khoáng thiên nhiên 500ml.',
+                category: 'Đồ uống',
+                foodGroup: 'Đồ uống',
+                image: 'https://images.unsplash.com/photo-1523362628742-0c582c5eead1?q=80&w=1000&auto=format&fit=crop',
+                ingredients: [{ name: 'Nước suối', amount: '1 chai', price: 6000 }],
+                instructions: ['Bật nắp'],
+                costEstimate: 10000,
+                shopId: (shops as any)[4]._id, // Bánh mì Anh Bảy
+            },
+            {
+                title: 'Cà phê đá',
+                description: 'Cà phê đen truyền thống.',
+                category: 'Đồ uống',
+                foodGroup: 'Đồ uống',
+                image: 'https://images.unsplash.com/photo-1559496417-e7f20ec2478e?q=80&w=1000&auto=format&fit=crop',
+                ingredients: [{ name: 'Cà phê', amount: '1 ly', price: 15000 }],
+                instructions: ['Pha máy'],
+                costEstimate: 25000,
+                shopId: (shops as any)[4]._id,
             }
         ];
 

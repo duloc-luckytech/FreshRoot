@@ -4,7 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { askAI, IAIResponse } from '@/services/ai-service';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -99,21 +99,29 @@ export default function AIChatScreen() {
         </View>
     );
 
-    return (
-        <ThemedView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
+    const navigation = useNavigation();
+
+    React.useLayoutEffect(() => {
+        navigation.setOptions({
+            headerLeft: () => (
+                <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
+                    <IconSymbol name="chevron.left" size={24} color={colors.tint} />
                 </TouchableOpacity>
-                <View style={styles.headerInfo}>
-                    <ThemedText type="subtitle" style={styles.headerTitle}>FreshRoot AI</ThemedText>
-                    <View style={styles.statusRow}>
-                        <View style={styles.statusDot} />
-                        <ThemedText style={styles.statusText}>Trực tuyến</ThemedText>
+            ),
+            headerTitle: () => (
+                <View style={{ alignItems: 'center' }}>
+                    <ThemedText style={{ fontSize: 18, fontWeight: 'bold' }}>FreshRoot AI</ThemedText>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#2ECC71' }} />
+                        <ThemedText style={{ fontSize: 12, color: '#8e8e93' }}>Trực tuyến</ThemedText>
                     </View>
                 </View>
-                <View style={{ width: 40 }} />
-            </View>
+            ),
+        });
+    }, [navigation]);
+
+    return (
+        <ThemedView style={styles.container}>
 
             <FlatList
                 ref={flatListRef}
@@ -157,15 +165,6 @@ export default function AIChatScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(142, 142, 147, 0.1)',
     },
     backBtn: {
         width: 40,

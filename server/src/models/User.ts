@@ -27,7 +27,7 @@ export interface IUser extends Document {
     isActive: boolean;
     bio?: string;
     biometricEnabled: boolean;
-    role: 'user' | 'agent';
+    role: 'user' | 'agent' | 'admin';
     createdAt: Date;
     getSignedJwtToken(): string;
     matchPassword(enteredPassword: string): Promise<boolean>;
@@ -55,8 +55,8 @@ const UserSchema: Schema<IUser> = new mongoose.Schema({
         required: [true, 'Please add an email'],
         unique: true,
         match: [
-            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-            'Please add a valid email',
+            /^(\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+|admin)$/,
+            'Please add a valid email or "admin"',
         ],
     },
     phone: {
@@ -67,7 +67,7 @@ const UserSchema: Schema<IUser> = new mongoose.Schema({
     password: {
         type: String,
         required: [true, 'Please add a password'],
-        minlength: 6,
+        minlength: 5,
         select: false,
     },
     rank: {
@@ -99,7 +99,7 @@ const UserSchema: Schema<IUser> = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'agent'],
+        enum: ['user', 'agent', 'admin'],
         default: 'user',
     },
     createdAt: {
